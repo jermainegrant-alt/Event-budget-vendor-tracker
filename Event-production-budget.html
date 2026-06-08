@@ -1,0 +1,500 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Production Budget Tool</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0e0e0e;
+    --surface: #1a1a1a;
+    --surface2: #242424;
+    --border: rgba(255,255,255,0.08);
+    --border2: rgba(255,255,255,0.14);
+    --text: #f0ede8;
+    --muted: #888;
+    --faint: #555;
+    --accent: #c8a96e;
+    --accent-dim: rgba(200,169,110,0.12);
+    --accent-dim2: rgba(200,169,110,0.22);
+    --danger: #e05252;
+    --danger-dim: rgba(224,82,82,0.1);
+    --success: #4caf7d;
+    --radius: 10px;
+    --radius-sm: 6px;
+    --font: 'Segoe UI', system-ui, sans-serif;
+  }
+
+  body { background: var(--bg); color: var(--text); font-family: var(--font); font-size: 15px; min-height: 100vh; }
+
+  /* HEADER */
+  .app-header { padding: 20px 20px 0; }
+  .app-header h1 { font-size: 22px; font-weight: 600; color: var(--text); letter-spacing: -0.3px; }
+  .app-header p { font-size: 13px; color: var(--muted); margin-top: 3px; }
+
+  /* TABS */
+  .tabs { display: flex; gap: 4px; padding: 16px 20px 0; border-bottom: 1px solid var(--border); }
+  .tab { padding: 8px 16px; font-size: 13px; font-weight: 500; border-radius: var(--radius-sm) var(--radius-sm) 0 0; cursor: pointer; color: var(--muted); background: none; border: none; transition: all 0.15s; }
+  .tab.active { background: var(--surface); color: var(--accent); border: 1px solid var(--border); border-bottom: 1px solid var(--surface); margin-bottom: -1px; }
+  .tab:not(.active):hover { color: var(--text); }
+
+  /* CONTENT */
+  .tab-content { display: none; padding: 20px; }
+  .tab-content.active { display: block; }
+
+  /* FIELDS */
+  .field { margin-bottom: 14px; }
+  .field label { display: block; font-size: 11px; font-weight: 600; color: var(--muted); letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 6px; }
+  input[type="text"], input[type="number"], select, textarea {
+    width: 100%; background: var(--surface); border: 1px solid var(--border2); border-radius: var(--radius-sm);
+    color: var(--text); font-family: var(--font); font-size: 14px; padding: 9px 12px; outline: none; transition: border 0.15s;
+  }
+  input:focus, select:focus, textarea:focus { border-color: var(--accent); }
+  textarea { resize: vertical; min-height: 80px; }
+  select option { background: #1a1a1a; }
+
+  /* CAT CHIPS */
+  .chip-row { display: flex; flex-wrap: wrap; gap: 8px; }
+  .chip { display: flex; align-items: center; gap: 5px; padding: 5px 12px; border: 1px solid var(--border2); border-radius: 999px; font-size: 12px; cursor: pointer; color: var(--muted); background: var(--surface); transition: all 0.12s; user-select: none; }
+  .chip.on { background: var(--accent-dim2); color: var(--accent); border-color: var(--accent); }
+
+  /* BUTTONS */
+  .btn-primary { width: 100%; padding: 11px; background: var(--accent); color: #0e0e0e; border: none; border-radius: var(--radius-sm); font-size: 14px; font-weight: 600; cursor: pointer; margin-top: 6px; transition: opacity 0.15s; }
+  .btn-primary:hover { opacity: 0.88; }
+  .btn-primary:disabled { opacity: 0.35; cursor: not-allowed; }
+  .btn-ghost { background: none; border: 1px solid var(--border2); color: var(--muted); border-radius: var(--radius-sm); padding: 7px 14px; font-size: 13px; font-weight: 500; cursor: pointer; transition: all 0.12s; }
+  .btn-ghost:hover { border-color: var(--text); color: var(--text); }
+  .btn-icon { background: none; border: none; cursor: pointer; color: var(--faint); padding: 4px; border-radius: 4px; display: flex; align-items: center; justify-content: center; transition: color 0.12s; }
+  .btn-icon:hover { color: var(--danger); }
+  .btn-icon svg { width: 15px; height: 15px; }
+
+  /* DIVIDER */
+  .divider { border: none; border-top: 1px solid var(--border); margin: 18px 0; }
+
+  /* CATEGORY BLOCK */
+  .cat-block { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); margin-bottom: 12px; overflow: hidden; }
+  .cat-head { display: flex; align-items: center; justify-content: space-between; padding: 10px 14px; background: var(--surface2); border-bottom: 1px solid var(--border); }
+  .cat-name { font-size: 13px; font-weight: 600; color: var(--text); }
+  .cat-sub { font-size: 13px; font-weight: 600; color: var(--accent); }
+  .cat-sub-note { font-size: 11px; color: var(--muted); margin-top: 1px; text-align: right; }
+
+  /* LINE ITEMS */
+  .col-heads { display: grid; grid-template-columns: 1fr 110px 80px 28px; gap: 8px; padding: 5px 14px; }
+  .col-h { font-size: 10px; color: var(--faint); text-transform: uppercase; letter-spacing: 0.05em; }
+  .col-h.r { text-align: right; }
+  .col-h.c { text-align: center; }
+  .line-row { display: grid; grid-template-columns: 1fr 110px 80px 28px; gap: 8px; padding: 7px 14px; align-items: center; border-top: 1px solid var(--border); }
+  .line-row input[type="text"], .line-row input[type="number"] { padding: 5px 8px; font-size: 13px; }
+  .line-row input[type="number"] { text-align: right; }
+  .line-row.provided { opacity: 0.4; }
+  .checkbox-wrap { display: flex; align-items: center; justify-content: center; }
+  .checkbox-wrap input[type="checkbox"] { width: 16px; height: 16px; accent-color: var(--accent); cursor: pointer; }
+  .add-line-btn { display: flex; align-items: center; gap: 6px; width: 100%; padding: 8px 14px; background: none; border: none; border-top: 1px solid var(--border); color: var(--faint); font-size: 12px; cursor: pointer; transition: color 0.12s; }
+  .add-line-btn:hover { color: var(--accent); }
+
+  /* TOTALS */
+  .totals-box { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px 16px; margin-top: 16px; }
+  .tot-row { display: flex; justify-content: space-between; font-size: 13px; color: var(--muted); padding: 3px 0; }
+  .tot-row.grand { font-size: 16px; font-weight: 600; color: var(--text); border-top: 1px solid var(--border2); margin-top: 8px; padding-top: 10px; }
+  .tot-row.grand span:last-child { color: var(--accent); }
+
+  /* COPY BTN */
+  .copy-btn { width: 100%; padding: 10px; background: none; color: var(--muted); border: 1px solid var(--border2); border-radius: var(--radius-sm); font-size: 13px; font-weight: 500; cursor: pointer; margin-top: 10px; display: flex; align-items: center; justify-content: center; gap: 8px; transition: all 0.12s; }
+  .copy-btn:hover { border-color: var(--text); color: var(--text); }
+
+  .hint { font-size: 12px; color: var(--faint); text-align: center; margin-top: 10px; }
+  .status-msg { font-size: 13px; color: var(--muted); text-align: center; padding: 2rem 1rem; }
+
+  /* QUOTE TRACKER */
+  .qt-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+  .qt-header h2 { font-size: 16px; font-weight: 600; }
+  .qt-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px; margin-bottom: 10px; }
+  .qt-card-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
+  .qt-item-name { font-size: 14px; font-weight: 500; color: var(--text); }
+  .qt-category { font-size: 11px; color: var(--muted); margin-top: 2px; }
+  .status-badge { font-size: 11px; font-weight: 600; padding: 3px 10px; border-radius: 999px; white-space: nowrap; }
+  .badge-waiting { background: rgba(200,169,110,0.15); color: var(--accent); }
+  .badge-received { background: rgba(76,175,125,0.15); color: var(--success); }
+  .badge-selected { background: rgba(76,175,125,0.25); color: var(--success); }
+  .qt-artisans { margin-top: 12px; }
+  .qt-artisan-row { display: grid; grid-template-columns: 1fr 110px 90px 28px; gap: 8px; align-items: center; padding: 5px 0; border-top: 1px solid var(--border); }
+  .qt-artisan-row:first-child { border-top: none; margin-top: 6px; }
+  .qt-artisan-row input { font-size: 13px; padding: 5px 8px; }
+  .qt-artisan-row input[type="number"] { text-align: right; }
+  .select-btn { background: none; border: 1px solid var(--border2); border-radius: var(--radius-sm); padding: 4px 8px; font-size: 11px; color: var(--muted); cursor: pointer; transition: all 0.12s; white-space: nowrap; }
+  .select-btn:hover, .select-btn.chosen { background: var(--accent-dim2); color: var(--accent); border-color: var(--accent); }
+  .qt-add-artisan { display: flex; align-items: center; gap: 5px; background: none; border: none; color: var(--faint); font-size: 12px; cursor: pointer; padding: 6px 0 0; transition: color 0.12s; }
+  .qt-add-artisan:hover { color: var(--accent); }
+  .qt-add-item { display: flex; gap: 8px; margin-bottom: 14px; }
+  .qt-add-item input { flex: 1; }
+  .qt-add-item select { width: 140px; }
+  .qt-add-item .btn-ghost { white-space: nowrap; }
+  .empty-state { text-align: center; color: var(--faint); font-size: 13px; padding: 2rem; }
+
+  /* SUMMARY badge */
+  .summary-row { display: flex; gap: 10px; margin-bottom: 14px; flex-wrap: wrap; }
+  .sum-card { flex: 1; min-width: 100px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 10px 12px; }
+  .sum-label { font-size: 11px; color: var(--muted); }
+  .sum-val { font-size: 18px; font-weight: 600; color: var(--accent); margin-top: 2px; }
+
+  @media (max-width: 480px) {
+    .col-heads, .line-row { grid-template-columns: 1fr 90px 70px 28px; }
+    .qt-artisan-row { grid-template-columns: 1fr 90px 70px 28px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="app-header">
+  <h1>Production Budget</h1>
+  <p>Lagos events & film productions</p>
+</div>
+
+<div class="tabs">
+  <button class="tab active" onclick="switchTab('budget')">Budget builder</button>
+  <button class="tab" onclick="switchTab('quotes')">Quote tracker</button>
+</div>
+
+<!-- BUDGET TAB -->
+<div class="tab-content active" id="tab-budget">
+
+  <div class="field">
+    <label>Event type</label>
+    <select id="eventType">
+      <option value="">Select type...</option>
+      <option>Short film</option>
+      <option>Feature film</option>
+      <option>Music video</option>
+      <option>Concert</option>
+      <option>Private party</option>
+      <option>Fashion show</option>
+      <option>Corporate event</option>
+      <option>Movie set</option>
+      <option>Product launch</option>
+      <option>Other</option>
+    </select>
+  </div>
+
+  <div class="field">
+    <label>Categories</label>
+    <div class="chip-row" id="catChips"></div>
+  </div>
+
+  <div class="field">
+    <label>Describe the production</label>
+    <textarea id="description" placeholder="e.g. 15-minute short film. Outdoor market scene on Lagos Island, 1 interior bedroom scene. Cast of 6. Night and day shoots. 1990s Lagos period look."></textarea>
+  </div>
+
+  <button class="btn-primary" id="genBtn" onclick="generateBudget()">✦ Generate budget draft</button>
+
+  <div id="budgetArea"></div>
+</div>
+
+<!-- QUOTE TRACKER TAB -->
+<div class="tab-content" id="tab-quotes">
+
+  <div class="summary-row" id="qtSummary"></div>
+
+  <div class="qt-add-item">
+    <input type="text" id="newItemName" placeholder="Item needing a quote..." />
+    <select id="newItemCat">
+      <option value="">Category</option>
+    </select>
+    <button class="btn-ghost" onclick="addQuoteItem()">+ Add</button>
+  </div>
+
+  <div id="quoteList"></div>
+</div>
+
+<script>
+const ALL_CATS = [
+  { name:"Props", icon:"📦", on:true },
+  { name:"Set elements", icon:"🏗️", on:true },
+  { name:"Logistics", icon:"🚛", on:true },
+  { name:"Miscellaneous", icon:"•••", on:true },
+  { name:"Personnel", icon:"👥", on:true },
+  { name:"Makeup", icon:"💄", on:false },
+  { name:"Costume", icon:"👗", on:false },
+];
+
+let budgetData = {};
+let quoteItems = JSON.parse(localStorage.getItem('qt_items') || '[]');
+
+// ── TABS ──
+function switchTab(t) {
+  document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(el => el.classList.remove('active'));
+  document.getElementById('tab-' + t).classList.add('active');
+  document.querySelectorAll('.tab')[t === 'budget' ? 0 : 1].classList.add('active');
+  if (t === 'quotes') renderQuotes();
+}
+
+// ── CHIPS ──
+function buildChips() {
+  const wrap = document.getElementById('catChips');
+  wrap.innerHTML = '';
+  ALL_CATS.forEach((c, i) => {
+    const d = document.createElement('div');
+    d.className = 'chip' + (c.on ? ' on' : '');
+    d.textContent = c.icon + ' ' + c.name;
+    d.onclick = () => { ALL_CATS[i].on = !ALL_CATS[i].on; buildChips(); updateQtCatSelect(); };
+    wrap.appendChild(d);
+  });
+}
+buildChips();
+
+function activeCats() { return ALL_CATS.filter(c => c.on).map(c => c.name); }
+
+function fmt(n) { return Math.round(n).toLocaleString('en-NG'); }
+
+// ── BUDGET GENERATION ──
+async function generateBudget() {
+  const type = document.getElementById('eventType').value;
+  const desc = document.getElementById('description').value.trim();
+  const cats = activeCats();
+  if (!type || !desc) { alert('Please select event type and add a description.'); return; }
+  if (!cats.length) { alert('Select at least one category.'); return; }
+
+  const btn = document.getElementById('genBtn');
+  btn.disabled = true; btn.textContent = 'Generating...';
+  document.getElementById('budgetArea').innerHTML = '<p class="status-msg">Drafting your budget with AI...</p>';
+
+  const prompt = `You are a Lagos-based production budget expert. Generate a realistic itemized budget in Nigerian Naira for this production across these categories: ${cats.join(', ')}.
+
+Event type: ${type}
+Description: ${desc}
+
+For each category provide 3-6 specific line items. Use realistic Lagos market prices 2024-2025. Be specific with item names.
+
+Return ONLY valid JSON, no markdown:
+{ ${cats.map(c => `"${c}": [{"item":"name","amount":50000}]`).join(',')} }`;
+
+  try {
+    const res = await fetch("https://api.anthropic.com/v1/messages", {
+      method:"POST", headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({ model:"claude-sonnet-4-20250514", max_tokens:1200, messages:[{role:"user",content:prompt}] })
+    });
+    const data = await res.json();
+    const text = data.content.map(i => i.text||'').join('');
+    const parsed = JSON.parse(text.replace(/```json|```/g,'').trim());
+    budgetData = {};
+    for (const cat of cats) {
+      budgetData[cat] = (parsed[cat]||[]).map((r,i) => ({
+        id: cat.replace(/\s/g,'') + i + Date.now(), item: r.item, amount: r.amount, provided: false
+      }));
+    }
+    renderBudget();
+  } catch(e) {
+    document.getElementById('budgetArea').innerHTML = '<p class="status-msg">Something went wrong. Try again.</p>';
+  }
+  btn.disabled = false; btn.textContent = '✦ Regenerate budget';
+}
+
+// ── RENDER BUDGET ──
+function renderBudget() {
+  const cats = Object.keys(budgetData);
+  let html = '<hr class="divider">';
+
+  for (const cat of cats) {
+    const items = budgetData[cat]||[];
+    const sid = cat.replace(/\s/g,'_');
+    const sub = items.filter(r=>!r.provided).reduce((s,r)=>s+(Number(r.amount)||0),0);
+    const pCount = items.filter(r=>r.provided).length;
+    html += `<div class="cat-block">
+      <div class="cat-head">
+        <span class="cat-name">${cat}</span>
+        <div>
+          <div class="cat-sub" id="sub-${sid}">₦${fmt(sub)}</div>
+          ${pCount ? `<div class="cat-sub-note" id="pnote-${sid}">${pCount} item${pCount>1?'s':''} client-provided</div>` : `<div class="cat-sub-note" id="pnote-${sid}"></div>`}
+        </div>
+      </div>
+      <div class="col-heads">
+        <span class="col-h">Item</span>
+        <span class="col-h r">Amount (₦)</span>
+        <span class="col-h c">Client has</span>
+        <span></span>
+      </div>`;
+    for (const row of items) {
+      html += `<div class="line-row${row.provided?' provided':''}" id="row-${row.id}">
+        <input type="text" value="${row.item.replace(/"/g,'&quot;')}" onchange="updateBudgetItem('${cat}','${row.id}','item',this.value)" />
+        <input type="number" value="${row.amount}" ${row.provided?'disabled':''} onchange="updateBudgetItem('${cat}','${row.id}','amount',this.value)" />
+        <div class="checkbox-wrap"><input type="checkbox" ${row.provided?'checked':''} onchange="toggleProvided('${cat}','${row.id}',this.checked)" /></div>
+        <button class="btn-icon" onclick="delBudgetItem('${cat}','${row.id}')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/></svg></button>
+      </div>`;
+    }
+    html += `<button class="add-line-btn" onclick="addBudgetLine('${cat}')">+ Add line item</button></div>`;
+  }
+
+  let grand = 0;
+  html += `<div class="totals-box">`;
+  for (const cat of cats) {
+    const sid = cat.replace(/\s/g,'_');
+    const sub = (budgetData[cat]||[]).filter(r=>!r.provided).reduce((s,r)=>s+(Number(r.amount)||0),0);
+    grand += sub;
+    html += `<div class="tot-row"><span>${cat}</span><span id="tot-${sid}">₦${fmt(sub)}</span></div>`;
+  }
+  html += `<div class="tot-row grand"><span>Total to bill</span><span id="grand-total">₦${fmt(grand)}</span></div></div>`;
+  html += `<button class="copy-btn" onclick="copyBudget()">⧉ Copy budget to clipboard</button>`;
+  html += `<p class="hint">Tick "client has" to exclude from your total. Edit any line — totals update live.</p>`;
+
+  document.getElementById('budgetArea').innerHTML = html;
+}
+
+function refreshBudgetTotals() {
+  let grand = 0;
+  for (const cat of Object.keys(budgetData)) {
+    const sid = cat.replace(/\s/g,'_');
+    const sub = (budgetData[cat]||[]).filter(r=>!r.provided).reduce((s,r)=>s+(Number(r.amount)||0),0);
+    grand += sub;
+    const s=document.getElementById('sub-'+sid); if(s) s.textContent='₦'+fmt(sub);
+    const t=document.getElementById('tot-'+sid); if(t) t.textContent='₦'+fmt(sub);
+    const pnote=document.getElementById('pnote-'+sid);
+    const pCount=(budgetData[cat]||[]).filter(r=>r.provided).length;
+    if(pnote) pnote.textContent = pCount ? `${pCount} item${pCount>1?'s':''} client-provided` : '';
+  }
+  const g=document.getElementById('grand-total'); if(g) g.textContent='₦'+fmt(grand);
+}
+
+function updateBudgetItem(cat,id,field,val) {
+  const item=budgetData[cat].find(r=>r.id===id); if(!item) return;
+  item[field]=field==='amount'?Number(val):val; refreshBudgetTotals();
+}
+function toggleProvided(cat,id,val) {
+  const item=budgetData[cat].find(r=>r.id===id); if(!item) return;
+  item.provided=val; renderBudget();
+}
+function delBudgetItem(cat,id) { budgetData[cat]=budgetData[cat].filter(r=>r.id!==id); renderBudget(); }
+function addBudgetLine(cat) {
+  const id=cat.replace(/\s/g,'')+Date.now();
+  budgetData[cat].push({id,item:'New item',amount:0,provided:false});
+  renderBudget();
+  setTimeout(()=>{ const el=document.getElementById('row-'+id); if(el) el.querySelector('input').focus(); },50);
+}
+
+function copyBudget() {
+  let text='PRODUCTION BUDGET\n\n'; let grand=0;
+  for (const cat of Object.keys(budgetData)) {
+    const items=budgetData[cat]||[];
+    const billable=items.filter(r=>!r.provided);
+    const provided=items.filter(r=>r.provided);
+    const sub=billable.reduce((s,r)=>s+(Number(r.amount)||0),0); grand+=sub;
+    text+=`${cat.toUpperCase()}\n`;
+    billable.forEach(r=>{ text+=`  ${r.item}: ₦${fmt(r.amount)}\n`; });
+    if(provided.length) text+=`  [Client providing: ${provided.map(r=>r.item).join(', ')}]\n`;
+    text+=`  Subtotal: ₦${fmt(sub)}\n\n`;
+  }
+  text+=`TOTAL TO BILL: ₦${fmt(grand)}`;
+  navigator.clipboard.writeText(text).then(()=>{
+    const btn=document.querySelector('.copy-btn');
+    btn.textContent='✓ Copied!';
+    setTimeout(()=>{ btn.textContent='⧉ Copy budget to clipboard'; },2000);
+  });
+}
+
+// ── QUOTE TRACKER ──
+function saveQuotes() { localStorage.setItem('qt_items', JSON.stringify(quoteItems)); }
+
+function updateQtCatSelect() {
+  const sel=document.getElementById('newItemCat'); if(!sel) return;
+  const cats=ALL_CATS.map(c=>c.name);
+  sel.innerHTML='<option value="">Category</option>' + cats.map(c=>`<option>${c}</option>`).join('');
+}
+updateQtCatSelect();
+
+function addQuoteItem() {
+  const name=document.getElementById('newItemName').value.trim();
+  const cat=document.getElementById('newItemCat').value;
+  if(!name) { alert('Enter an item name.'); return; }
+  quoteItems.push({ id:'q'+Date.now(), item:name, category:cat, status:'waiting', artisans:[] });
+  saveQuotes();
+  document.getElementById('newItemName').value='';
+  renderQuotes();
+}
+
+function renderQuotes() {
+  const waiting=quoteItems.filter(q=>q.status==='waiting').length;
+  const received=quoteItems.filter(q=>q.artisans.some(a=>a.quote)).length;
+  const selected=quoteItems.filter(q=>q.artisans.some(a=>a.selected)).length;
+
+  document.getElementById('qtSummary').innerHTML=`
+    <div class="sum-card"><div class="sum-label">Total items</div><div class="sum-val">${quoteItems.length}</div></div>
+    <div class="sum-card"><div class="sum-label">Waiting on quote</div><div class="sum-val">${waiting}</div></div>
+    <div class="sum-card"><div class="sum-label">Quote received</div><div class="sum-val">${received}</div></div>
+    <div class="sum-card"><div class="sum-label">Artisan selected</div><div class="sum-val">${selected}</div></div>`;
+
+  const list=document.getElementById('quoteList');
+  if(!quoteItems.length) { list.innerHTML='<div class="empty-state">No items yet. Add something above to start tracking quotes.</div>'; return; }
+
+  let html='';
+  quoteItems.forEach((q,qi) => {
+    const hasSelected=q.artisans.some(a=>a.selected);
+    const hasQuotes=q.artisans.some(a=>a.quote);
+    const badgeClass=hasSelected?'badge-selected':hasQuotes?'badge-received':'badge-waiting';
+    const badgeText=hasSelected?'Selected':'Received'?hasQuotes:'Waiting';
+    const bText = hasSelected ? 'Artisan selected' : hasQuotes ? 'Quote received' : 'Waiting on quote';
+    const bClass = hasSelected ? 'badge-selected' : hasQuotes ? 'badge-received' : 'badge-waiting';
+
+    html+=`<div class="qt-card">
+      <div class="qt-card-top">
+        <div>
+          <div class="qt-item-name">${q.item}</div>
+          ${q.category?`<div class="qt-category">${q.category}</div>`:''}
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <span class="status-badge ${bClass}">${bText}</span>
+          <button class="btn-icon" onclick="delQuoteItem(${qi})"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/></svg></button>
+        </div>
+      </div>
+      <div class="qt-artisans">`;
+
+    if(q.artisans.length) {
+      html+=`<div style="display:grid;grid-template-columns:1fr 110px 90px 28px;gap:8px;padding:4px 0;">
+        <span style="font-size:10px;color:var(--faint);text-transform:uppercase;letter-spacing:.05em;">Artisan</span>
+        <span style="font-size:10px;color:var(--faint);text-transform:uppercase;letter-spacing:.05em;text-align:right;">Quote (₦)</span>
+        <span style="font-size:10px;color:var(--faint);text-transform:uppercase;letter-spacing:.05em;text-align:center;">Select</span>
+        <span></span>
+      </div>`;
+      q.artisans.forEach((a,ai) => {
+        html+=`<div class="qt-artisan-row" style="${a.selected?'background:rgba(200,169,110,0.06);border-radius:6px;':''}">
+          <input type="text" value="${(a.name||'').replace(/"/g,'&quot;')}" placeholder="Artisan name" onchange="updateArtisan(${qi},${ai},'name',this.value)" />
+          <input type="number" value="${a.quote||''}" placeholder="0" onchange="updateArtisan(${qi},${ai},'quote',this.value)" />
+          <button class="select-btn ${a.selected?'chosen':''}" onclick="selectArtisan(${qi},${ai})">${a.selected?'✓ Chosen':'Choose'}</button>
+          <button class="btn-icon" onclick="delArtisan(${qi},${ai})"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+        </div>`;
+      });
+    }
+
+    html+=`<button class="qt-add-artisan" onclick="addArtisan(${qi})">+ Add artisan / vendor</button>`;
+    html+=`</div></div>`;
+  });
+
+  list.innerHTML=html;
+}
+
+function delQuoteItem(qi) { quoteItems.splice(qi,1); saveQuotes(); renderQuotes(); }
+
+function addArtisan(qi) {
+  quoteItems[qi].artisans.push({name:'',quote:'',selected:false});
+  saveQuotes(); renderQuotes();
+  setTimeout(()=>{
+    const cards=document.querySelectorAll('.qt-card');
+    if(cards[qi]) { const inputs=cards[qi].querySelectorAll('.qt-artisan-row input[type="text"]'); if(inputs.length) inputs[inputs.length-1].focus(); }
+  },50);
+}
+
+function updateArtisan(qi,ai,field,val) {
+  quoteItems[qi].artisans[ai][field]=field==='quote'?Number(val):val;
+  saveQuotes(); renderQuotes();
+}
+
+function selectArtisan(qi,ai) {
+  quoteItems[qi].artisans.forEach((a,i)=>{ a.selected = i===ai ? !a.selected : false; });
+  saveQuotes(); renderQuotes();
+}
+
+function delArtisan(qi,ai) { quoteItems[qi].artisans.splice(ai,1); saveQuotes(); renderQuotes(); }
+</script>
+</body>
+</html>
